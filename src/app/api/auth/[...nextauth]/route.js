@@ -5,6 +5,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcrypt";
 import { MongoDBAdapter } from "@next-auth/mongodb-adapter";
 import clientPromise from "@/lib/mongodb";
+import { ObjectId } from "mongodb";
 
 const handler = NextAuth({
   adapter: MongoDBAdapter(clientPromise),
@@ -12,6 +13,15 @@ const handler = NextAuth({
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      profile(profile) {
+        return {
+          id: profile.sub, // identificador único do Google
+          name: profile.name,
+          email: profile.email,
+          image: profile.picture,
+          role: "user",
+        };
+      },
     }),
     CredentialsProvider({
       name: "Credentials",
@@ -49,15 +59,36 @@ const handler = NextAuth({
     strategy: "jwt",
   },
   callbacks: {
+    async signIn({ user, account, profile, email, credentials }) {
+      return true;
+    },
     async jwt({ token, user }) {
-      if (user) token.id = user._id;
+      if (user) token.id = user.id;
       return token;
     },
     async session({ session, token }) {
-      if (token) session.user.id = token.id;
+      const client = await clientPromise;
+      const db = client.db();
+
+      const user = await db
+        .collection("users")
+        .findOne({ _id: new ObjectId(token.id) });
+
+      if (user) {
+        session.user = {
+          ...session.user,
+          id: token.id,
+          name: user.name,
+          email: user.email,
+          image: user.image || session.user.image,
+          role: user.role || "user",
+        };
+      }
+
       return session;
     },
   },
+  secret: process.env.JWT_SECRET,
 });
 
 export { handler as GET, handler as POST };

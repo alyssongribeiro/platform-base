@@ -1,5 +1,7 @@
 // src/app/api/users/route.js
-import clientPromise from "../../../lib/mongodb";
+import clientPromise from "@/lib/mongodb";
+import { getToken } from "next-auth/jwt";
+import { ObjectId } from "mongodb";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
@@ -46,6 +48,72 @@ export async function POST(req) {
     );
   } catch (error) {
     console.error("Erro ao cadastrar usuário:", error);
+    return new Response(
+      JSON.stringify({ message: "Erro interno no servidor" }),
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(req) {
+  try {
+    // Extrai o token JWT a partir da requisição usando a variável de ambiente JWT_SECRET
+    const token = await getToken({
+      req,
+      secret: process.env.JWT_SECRET,
+      cookieName: "next-auth.session-token",
+    });
+
+    console.log(token);
+
+    if (!token) {
+      console.error("Token não encontrado.");
+      return new Response(JSON.stringify({ message: "Unauthorized" }), {
+        status: 401,
+      });
+    }
+
+    // Assume que o token possui a propriedade 'id' com o ObjectId do usuário
+    const userId = token.id;
+
+    console.log(userId);
+
+    if (!userId) {
+      console.error("Token não contém a propriedade id.");
+      return new Response(JSON.stringify({ message: "Unauthorized" }), {
+        status: 401,
+      });
+    }
+
+    // Pega os dados do corpo da requisição (ex.: nome)
+    const { name } = await req.json();
+    if (!name) {
+      return new Response(JSON.stringify({ message: "Nome é obrigatório" }), {
+        status: 400,
+      });
+    }
+
+    const client = await clientPromise;
+    const db = client.db();
+
+    // Atualiza o usuário pelo id extraído do JWT
+    const result = await db
+      .collection("users")
+      .updateOne({ _id: new ObjectId(userId) }, { $set: { name } });
+
+    if (result.matchedCount === 0) {
+      return new Response(
+        JSON.stringify({ message: "Usuário não encontrado" }),
+        { status: 404 }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({ message: "Perfil atualizado com sucesso!" }),
+      { status: 200 }
+    );
+  } catch (err) {
+    console.error("Erro ao atualizar perfil:", err);
     return new Response(
       JSON.stringify({ message: "Erro interno no servidor" }),
       { status: 500 }

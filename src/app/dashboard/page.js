@@ -21,8 +21,9 @@ export default function DashboardPage() {
   }
 
   return (
-    <Container className="mt-5">
+    <Container className="mt-5 p-3 rounded border bg-light bg-gradient text-dark">
       <h2>Dashboard</h2>
+      <hr />
       <p>Bem-vindo, {session.user.name || session.user.email}</p>
     </Container>
   );

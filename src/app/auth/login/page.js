@@ -4,14 +4,22 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Form, Button, Container, Alert, Spinner } from "react-bootstrap";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 
 export default function LoginPage() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Se o usuário já estiver autenticado, redireciona para o dashboard
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.push("/dashboard");
+    }
+  }, [status, router]);
 
   useEffect(() => {
     const errorParam = searchParams.get("error");
@@ -114,9 +122,9 @@ export default function LoginPage() {
           <p className="pt-3 text-center">
             <a
               href="/forgot-password"
-              className="text-light text-decoration-none"
+              className="text-dark text-decoration-none"
             >
-              Esqueci minha senha!
+              Esqueceu sua senha?
             </a>
           </p>
           <hr />
@@ -133,6 +141,7 @@ export default function LoginPage() {
                   size="sm"
                   role="status"
                   aria-hidden="true"
+                  className="me-1"
                 />{" "}
                 Carregando...
               </>

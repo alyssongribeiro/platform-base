@@ -105,6 +105,7 @@ export default function RegisterPage() {
                     size="sm"
                     role="status"
                     aria-hidden="true"
+                    className="me-1"
                   />{" "}
                   Carregando...
                 </>

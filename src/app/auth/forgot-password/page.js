@@ -67,6 +67,7 @@ export default function ForgotPasswordPage() {
                     size="sm"
                     role="status"
                     aria-hidden="true"
+                    className="me-1"
                   />{" "}
                   Enviando...
                 </>
